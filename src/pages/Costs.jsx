@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { useStore, mutate, toast } from '../lib/store.js';
 import { TODAY, addDays, addMonths, diffDays, ym, range, sum, inr, kshort, fmtD, monthName, monthShort } from '../lib/format.js';
 import { ops } from '../config/records.jsx';
-import { Header, Kpi, Delta, Table, Seg, Pill, HBars, ColChart, AddBtn, RowButtons } from '../components/ui.jsx';
+import { Header, Kpi, Delta, RecordList, Seg, Pill, HBars, ColChart, AddBtn, RowButtons, sumInr } from '../components/ui.jsx';
+import { LI } from '../config/listItems.jsx';
 
 const expCols = [['date', 'Date', 'date'], ['category', 'Category'], ['note', 'Note'], ['type', 'Type', (r) => <Pill k={r.type === 'Yearly' ? 'ink' : r.type === 'Monthly' ? 'brown' : ''}>{r.type}</Pill>], ['amount', 'Amount', 'inr']];
-const ExpTable = ({ rows }) => <Table kind="expenses" cols={expCols} rows={[...rows].sort((a, b) => b.date.localeCompare(a.date))} />;
+const ExpTable = ({ rows }) => <RecordList kind="expenses" cols={expCols} item={LI.expenses} group="date" groupSum={sumInr('amount')} rows={[...rows].sort((a, b) => b.date.localeCompare(a.date))} />;
 const byCat = (rows) => { const by = {}; rows.forEach((e) => (by[e.category] = (by[e.category] || 0) + e.amount)); return Object.entries(by).map(([l, v]) => ({ l, v })).sort((a, b) => b.v - a.v); };
 
 export function Expenses() {
@@ -18,15 +19,15 @@ export function Expenses() {
     kpis = [<Kpi key="1" hero l={day === TODAY ? 'Spent today' : 'Spent on ' + fmtD(day)} v={inr(sum(rows, (e) => e.amount))} s={`${rows.length} entries`} />,
       <Kpi key="2" l="Yesterday" v={inr(sum(D.expenses.filter((e) => e.date === addDays(TODAY, -1)), (e) => e.amount))} />, <Kpi key="3" l="30-day daily average" v={inr(sum(last, (x) => x.v) / 30)} />];
     body = <>
-      <div className="panel reveal" style={{ marginBottom: 16 }}><h3>Spend per day, last 30 days <small>selected day in black</small></h3><ColChart rows={last} xfmt={(x) => x.slice(8)} hi={last.findIndex((x) => x.l === day)} /></div>
-      <div className="toolbar"><div className="fld inline"><label htmlFor="expDay">Show date</label><input id="expDay" type="date" value={day} max={TODAY} onChange={(e) => setDay(e.target.value || TODAY)} /></div></div>
+      <div className="panel reveal"><h3>Spend per day, last 30 days <small>selected day in black</small></h3><ColChart rows={last} xfmt={(x) => x.slice(8)} hi={last.findIndex((x) => x.l === day)} /></div>
+      <div className="trow"><div className="fld inline" style={{ flex: 1 }}><label htmlFor="expDay">Show date</label><input id="expDay" type="date" value={day} max={TODAY} onChange={(e) => setDay(e.target.value || TODAY)} /></div></div>
       <ExpTable rows={rows} />
     </>;
   } else if (seg === 'Monthly') {
     const m = ym(TODAY); const rows = D.expenses.filter((e) => ym(e.date) === m); const pm = D.expenses.filter((e) => ym(e.date) === ym(addMonths(TODAY, -1)));
     kpis = [<Kpi key="1" hero l="This month" v={inr(sum(rows, (e) => e.amount))} s={<Delta now={sum(rows, (e) => e.amount)} prev={sum(pm, (e) => e.amount)} suffix="vs last month" />} />,
       <Kpi key="2" l="Fixed (rent, bills, EMI)" v={inr(sum(rows.filter((e) => e.type === 'Monthly'), (e) => e.amount))} />, <Kpi key="3" l="Day-to-day" v={inr(sum(rows.filter((e) => e.type === 'Daily'), (e) => e.amount))} />];
-    body = <><div className="panel reveal" style={{ marginBottom: 16 }}><h3>By category · {monthName(m)}</h3><HBars items={byCat(rows)} /></div><ExpTable rows={rows} /></>;
+    body = <><div className="panel reveal"><h3>By category · {monthName(m)}</h3><HBars items={byCat(rows)} /></div><ExpTable rows={rows} /></>;
   } else {
     const months = []; for (let i = 11; i >= 0; i--) months.push(ym(addMonths(TODAY.slice(0, 7) + '-01', -i)));
     const mv = months.map((m) => ({ l: m, v: sum(D.expenses.filter((e) => ym(e.date) === m), (e) => e.amount) }));
@@ -34,14 +35,14 @@ export function Expenses() {
     kpis = [<Kpi key="1" hero l="Last 12 months" v={kshort(sum(rows, (e) => e.amount))} />, <Kpi key="2" l="Monthly average" v={kshort(sum(rows, (e) => e.amount) / 12)} />,
       <Kpi key="3" l="Yearly payments" v={inr(sum(rows.filter((e) => e.type === 'Yearly'), (e) => e.amount))} s="licences, insurance, AMC" />];
     body = <>
-      <div className="grid"><div className="panel c7 reveal"><h3>Month by month</h3><ColChart rows={mv} xfmt={monthShort} hi={11} /></div><div className="panel c5 reveal"><h3>By category, 12 months</h3><HBars items={byCat(rows)} fmt={kshort} /></div></div>
+      <div className="grid"><div className="panel reveal"><h3>Month by month</h3><ColChart rows={mv} xfmt={monthShort} hi={11} /></div><div className="panel reveal"><h3>By category, 12 months</h3><HBars items={byCat(rows)} fmt={kshort} /></div></div>
       <h2 className="h2">Yearly and monthly bills</h2><ExpTable rows={rows.filter((e) => e.type !== 'Daily')} />
     </>;
   }
   return (
     <div className="page">
-      <Header eyebrow="Costs" title="Expenses" desc="Daily spending, monthly bills and once-a-year payments in one place."><AddBtn kind="expenses" label="Add expense" /></Header>
-      <div className="toolbar"><Seg options={['Daily', 'Monthly', 'Yearly']} value={seg} onChange={setSeg} /></div>
+      <Header eyebrow="Costs" title="Expenses" desc="Daily spending, monthly bills and once-a-year payments in one place."><AddBtn kind="expenses" label="Expense" /></Header>
+      <Seg options={['Daily', 'Monthly', 'Yearly']} value={seg} onChange={setSeg} />
       <div className="kpis">{kpis}</div>{body}
     </div>
   );
@@ -63,7 +64,7 @@ export function Dues() {
   };
   return (
     <div className="page">
-      <Header eyebrow="Costs" title={<>My dues &amp; <em>EMI</em></>} desc="Loans, EMIs and supplier money you still owe, and how many instalments are left. Paying an EMI also records it as an expense."><AddBtn kind="dues" label="Add loan or due" /></Header>
+      <Header eyebrow="Costs" title={<>My dues &amp; <em>EMI</em></>} desc="Loans, EMIs and supplier money you still owe, and how many instalments are left. Paying an EMI also records it as an expense."><AddBtn kind="dues" label="Loan or due" /></Header>
       <div className="kpis">
         <Kpi hero l="Total still owed" v={inr(sum(D.dues, left))} />
         <Kpi l="Due this month" v={inr(sum(D.dues.filter((x) => +x.paid < +x.count && ym(x.next) === ym(TODAY)), (x) => x.emi))} />

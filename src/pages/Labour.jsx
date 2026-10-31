@@ -12,28 +12,25 @@ export default function Labour() {
   const mark = (id, v) => mutate((DB) => { const day = (DB.attendance[TODAY] = DB.attendance[TODAY] || {}); if (day[id] === v) delete day[id]; else day[id] = v; });
   return (
     <div className="page">
-      <Header eyebrow="Team" title={<>Labour &amp; <em>attendance</em></>} desc="Who joined when, who came in today, and the last 30 days at a glance."><AddBtn kind="labour" label="Add worker" /></Header>
+      <Header eyebrow="Team" title={<>Labour &amp; <em>attendance</em></>} desc="Who joined when, who came in today, and the last 30 days at a glance."><AddBtn kind="labour" label="Worker" /></Header>
       <div className="kpis">
         <Kpi hero l="Present today" v={`${cnt('P') + cnt('H')} / ${D.labour.length}`} s={`${cnt('H')} half day`} />
         <Kpi l="Absent today" v={cnt('A')} /><Kpi l="Not marked" v={D.labour.length - cnt('P') - cnt('H') - cnt('A')} />
         <Kpi l="Wage bill today" v={inr(sum(D.labour, (l) => (att[l.id] === 'P' ? l.wage : att[l.id] === 'H' ? l.wage / 2 : 0)))} />
       </div>
       <div className="panel reveal">
-        <h3>Attendance · {fmtDY(TODAY)} <small>P present · ½ half day · A absent</small></h3>
+        <h3>{fmtDY(TODAY)} <small>P · ½ · A</small></h3>
         {D.labour.length ? (
           <div className="roster">{D.labour.map((l) => {
             const t = diffDays(TODAY, l.joined); const present = days.filter((d) => (D.attendance[d] || {})[l.id] === 'P').length;
             return (
               <div className="rrow" key={l.id}>
-                <div style={{ minWidth: 0 }}>
-                  <b>{l.name} {t < 45 && <Pill k="brown">New joiner</Pill>}</b>
-                  <small>{l.role} · joined {fmtDY(l.joined)} ({tenure(t)}) · {inr(l.wage)}/day · {present} days present in last 30</small>
-                  <div className="heat" aria-label="Last 30 days">{days.map((d) => { const a = (D.attendance[d] || {})[l.id] || ''; return <i key={d} className={a} title={`${fmtD(d)}: ${a || '—'}`} />; })}</div>
+                <div className="top">
+                  <div style={{ minWidth: 0 }}><b>{l.name} {t < 45 && <Pill k="brown">New</Pill>}</b><small>{l.role} · {inr(l.wage)}/day</small><small>Joined {fmtDY(l.joined)} · {tenure(t)}</small></div>
+                  <div className="att">{MARKS.map(([k, lb, word]) => <button key={k} type="button" className={att[l.id] === k ? `on ${k}` : ''} aria-label={`${l.name} ${word}`} aria-pressed={att[l.id] === k} onClick={() => mark(l.id, k)}>{lb}</button>)}</div>
                 </div>
-                <div className="rr-act">
-                  <div className="seg att">{MARKS.map(([k, lb, word]) => <button key={k} type="button" className={att[l.id] === k ? `on ${k}` : ''} aria-label={`${l.name} ${word}`} onClick={() => mark(l.id, k)}>{lb}</button>)}</div>
-                  <div><RowButtons id={l.id} kind="labour" /></div>
-                </div>
+                <div className="heat" aria-label="Last 30 days">{days.map((d) => { const a = (D.attendance[d] || {})[l.id] || ''; return <i key={d} className={a} title={`${fmtD(d)}: ${a || '—'}`} />; })}</div>
+                <div className="rr-foot"><small>{present} of last 30 days present</small><span><RowButtons id={l.id} kind="labour" /></span></div>
               </div>
             );
           })}</div>

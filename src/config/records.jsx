@@ -26,7 +26,7 @@ export const CFG = {
     },
     top(D) {
       const s = D.sales.filter((x) => x.date === TODAY); const by = {}; s.forEach((x) => (by[x.product] = (by[x.product] || 0) + x.qty));
-      return <div className="panel reveal" style={{ marginBottom: 16 }}><h3>Weight sold today, by product <small>{kg(sum(s, (x) => x.qty))} total</small></h3>
+      return <div className="panel reveal"><h3>Weight sold today, by product <small>{kg(sum(s, (x) => x.qty))} total</small></h3>
         <HBars items={Object.entries(by).map(([l, v]) => ({ l, v })).sort((a, b) => b.v - a.v)} fmt={kg} /></div>;
     },
   },
@@ -207,7 +207,7 @@ export const CFG = {
     },
     top(D) {
       const m = ym(TODAY); const rows = range(m + '-01', TODAY).map((d) => ({ l: d, v: (D.electricity.find((e) => e.date === d) || {}).units || 0 }));
-      return <div className="panel reveal" style={{ marginBottom: 16 }}><h3>Units per day · {monthName(m)} <small>today in black</small></h3><ColChart rows={rows} fmt={(v) => Math.round(v) + ''} xfmt={(d) => d.slice(8)} hi={rows.length - 1} /></div>;
+      return <div className="panel reveal"><h3>Units per day · {monthName(m)} <small>today in black</small></h3><ColChart rows={rows} fmt={(v) => Math.round(v) + ''} xfmt={(d) => d.slice(8)} hi={rows.length - 1} /></div>;
     },
   },
   salary: {

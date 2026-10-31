@@ -73,7 +73,10 @@ export async function saveFile(filename, data, mime, okMsg) {
   const dl = state.downloads;
   if (dl) {
     try { await dl.save({ filename, data }); toast(okMsg || 'Downloaded'); }
-    catch (e) { if (e && e.code === 'declined') return; toast(e && e.code === 'rate_limited' ? 'A download is already waiting for you to confirm.' : 'The file could not be downloaded here.'); }
+    catch (e) {
+      const c = e && e.code; if (c === 'declined') return;
+      toast(c === 'rate_limited' ? 'A download is already waiting for you to confirm.' : c === 'extension_not_enabled' || c === 'rejected_extension' ? 'This file type can’t be downloaded in this view.' : 'The file could not be downloaded here.');
+    }
     return;
   }
   if (window.claude) { toast('Downloads are not available in this view.'); return; }
